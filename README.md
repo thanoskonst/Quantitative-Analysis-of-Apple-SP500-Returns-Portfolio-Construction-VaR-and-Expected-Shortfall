@@ -2,7 +2,7 @@
 Quantitative analysis of Apple and S&amp;P 500 using R. Includes log returns, volatility clustering, CAPM regression (beta estimation), inverse-volatility portfolio construction, and risk metrics such as Value at Risk (VaR) and Expected Shortfall (ES).
 
 
-1) Price Dynamics & Log Returns  
+1) Price Dynamics & Log Returns  ( during 11/11/2019 – 6/11/2020 )
 Plotted Apple prices over 250 days -> clear volatility clustering and fat tails, which are typical characteristics of financial time series.  
 Log returns are used as they stabilize variance, allow additive compounding over time, and approximate normality better than raw price differences.  
 
