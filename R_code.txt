@@ -1,0 +1,175 @@
+# DATA IMPORT (11/11/2019 – 6/11/2020)
+
+data = read.table("C:/Users/user/OneDrive - unipi.gr/Επιφάνεια εργασίας/ALL (3).csv", header=TRUE, sep=";")
+
+# Extract Apple stock prices from dataset
+S = data$AAPL;S 
+
+# Replace commas with dots and convert to numeric
+S = gsub(",", ".", data$AAPL)   # convert decimal separator
+S = as.numeric(S);S             # convert to numeric values
+
+# Create time index for plotting
+time = 0:(length(S)-1) 
+
+# Plot Apple stock prices
+plot(time,S,type="l",xlab="Time",ylab="Price of AAPL",main="APPLE STOCK PRICES")
+
+
+
+# LOG RETURNS (APPLE)
+
+# Compute log returns (log differences)
+Y = numeric(length(S)-1)
+for(i in 2:length(S)){
+Y[i-1] = log(S[i]) - log(S[i-1]);
+}
+
+# Plot log returns
+time2 = 1:length(Y)
+plot(time2,Y,type="l",main="LOG DIFF OF APPLE",xlab="TIME",ylab="Log Returns")  
+# High volatility observed especially before day ~150
+
+
+# SUB-PERIOD ANALYSIS (LAST 150 DAYS)
+
+# Focus on most recent observations
+Z = tail(Y,150)
+
+# Descriptive statistics
+mean(Z)
+sd(Z)
+
+# Test if mean return is statistically different from zero
+t.test(Z, mu=0)
+
+
+
+# S&P 500 DATA & RETURNS
+
+# Extract S&P500 prices
+SP = data$SP50;SP
+
+# Clean and convert to numeric
+SP = gsub(",", ".", data$SP500)   # convert decimal separator
+SP = as.numeric(SP);SP   
+
+# Compute log returns for S&P500
+X = numeric(length(SP)-1)
+for(i in 2:length(SP)){
+X[i-1] = log(SP[i]) - log(SP[i-1]);
+}
+
+
+# REGRESSION: APPLE vs S&P500
+
+# Scatter plot of returns
+plot(X,Y,xlab="SP500",ylab="APPLE",main="SP500 & APPLE",pch=16,col=1:2)
+
+# Add legend
+legend("topleft",legend=c("SP500" , "APPLE"),col=1:2,pch=16)
+
+# Linear regression (CAPM-style)
+model = lm(Y~X)
+
+# Add regression line
+abline(model,lwd=2,col=3)
+
+# Model summary (beta, R^2, significance)
+summary(model)
+
+# Correlation between Apple and S&P500
+cor(X,Y)
+
+
+
+# PORTFOLIO CONSTRUCTION (INVERSE VOLATILITY)
+
+# Compute weights inversely proportional to volatility
+w1 = 1/sd(Y)
+w2 = 1/sd(X)
+
+# Normalize weights so they sum to 1
+w = c(w1, w2) / (w1 + w2)
+
+# Interpretation:
+# Asset with high volatility -> smaller weight
+# Asset with low volatility  -> larger weight
+
+# Compute portfolio returns
+Rp = w[1]*Y + w[2]*X
+
+# Test if portfolio mean return is zero
+t.test(Rp, mu=0) # Portfolio returns centered around zero
+
+# Plot distribution of portfolio returns
+hist(Rp, breaks=30, main="Portfolio Log Returns (Inverse Volatility Weights)", 
+     col="lightblue")
+
+
+
+# PORTFOLIO STATISTICS
+
+# Mean and standard deviation
+cat("Portfolio mean:", round(mean(Rp),5), "SD:", round(sd(Rp),5), "\n")
+
+
+
+# VALUE AT RISK (VaR)
+
+# Historical VaR (98%)
+VaR_hist = -quantile(Rp, 0.02)    # preferred due to non-normality
+cat("Historical VaR (98%):", round(VaR_hist,5), "\n")  
+
+# Parametric VaR (assuming normal distribution)
+mu_p = mean(Rp)      # average daily return
+sigma_p = sd(Rp)     # daily volatility
+
+VaR_param = -(mu_p + sigma_p*qnorm(0.02))
+cat("Parametric VaR (98%):", round(VaR_param,5), "\n")
+
+# Test for normality (Kolmogorov-Smirnov)
+ks.test(Rp,"pnorm",mean(Rp),sd(Rp))
+
+
+
+# EXPECTED SHORTFALL (ES)
+
+alpha = 0.02
+
+# VaR threshold level
+VaR_level = quantile(Rp, alpha)
+
+# Compute Expected Shortfall (average of worst losses)
+ES_hist = -mean(Rp[Rp <= VaR_level])
+
+cat("Expected Shortfall (98%):", round(ES_hist,5), "\n")
+
+# Interpretation:
+# In the worst 2% of cases, average losses exceed this value
+
+
+
+# LOSS DISTRIBUTION WITH VaR & ES
+
+# Convert returns to losses
+losses = -Rp
+
+# Plot loss distribution
+hist(losses, breaks=30, main="Portfolio Losses with VaR&ES", col="salmon")
+
+# Add VaR line
+abline(v=VaR_hist, col="blue", lwd=2)
+
+# Add ES line
+abline(v=ES_hist, col="red", lwd=2)
+
+# Highlight tail losses (extreme events)
+tail_losses = losses[losses >= VaR_level_loss]
+rug(tail_losses, col="red")
+
+# Add legend
+legend("topright",
+       legend=c("VaR (98%)", "Expected Shortfall (98%)"),
+       col=c("blue","red"),
+       lwd=2)
